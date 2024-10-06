@@ -13,7 +13,7 @@ This script monitors network connection and disconnection events and logs the ti
 ## How to Run
 1. Clone this repository:
    ```bash
-   git clone https://github.com/camposds/debian-like_net_connection_monitor.git
+   git clone https://github.com/camposds/net_connection_monitor.git
 2. Install required dependencies
 3. Run the script: 
     ```bash
