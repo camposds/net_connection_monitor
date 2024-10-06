@@ -22,5 +22,4 @@ This script monitors network connection and disconnection events and logs the ti
 4. Example output:
 "Disconnection time: 3.1 seconds"
 "ALERT: Disconnection lasted more than 10 seconds"
-5. 
 
