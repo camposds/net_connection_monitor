@@ -6,11 +6,13 @@ from collections import defaultdict
 # Limit for disconnections in seconds
 DISCONNECT_LIMIT = 10
 
+
 # Function to run PowerShell and fetch WLAN AutoConfig events
 def run_powershell():
     try:
         ps_command = (
-            "Get-WinEvent -LogName 'Microsoft-Windows-WLAN-AutoConfig/Operational' | "
+            "Get-WinEvent -LogName "
+            "'Microsoft-Windows-WLAN-AutoConfig/Operational' | "
             "Where-Object { $_.Id -in 8000, 8001, 8003, 11001, 11005 } | "
             "Format-Table TimeCreated, Id, Message -AutoSize"
         )
@@ -18,22 +20,28 @@ def run_powershell():
             ["powershell.exe", "-Command", ps_command],
             stdout=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout.splitlines()
     except subprocess.CalledProcessError as e:
         print(f"Error executing PowerShell: {e}")
         return []
 
+
 # Function to parse the log entries and capture connection/disconnection events
 def parse_log_entry(entry):
-    log_pattern = r'(?P<date>\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2})\s+(?P<id>\d+)\s+(?P<message>.+)'
+    log_pattern = (
+        r"(?P<date>\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2})\s+(?P<id>\d+)\s+"
+        r"(?P<message>.+)"
+    )
     match = re.search(log_pattern, entry)
     if match:
         try:
-            log_time = datetime.strptime(match.group('date'), '%d/%m/%Y %H:%M:%S')
-            event_id = int(match.group('id'))
-            message = match.group('message')
+            log_time = datetime.strptime(
+                match.group("date"), "%d/%m/%Y %H:%M:%S"
+            )
+            event_id = int(match.group("id"))
+            message = match.group("message")
             return log_time, event_id, message
         except ValueError as e:
             print(f"Error parsing log entry: {e}")
@@ -41,11 +49,13 @@ def parse_log_entry(entry):
     else:
         return None, None, None
 
+
 # Function to calculate the average of a list of values
 def calculate_average(values):
     if values:
         return sum(values) / len(values)
     return 0
+
 
 # Function to summarize disconnections by a given period (month or week)
 def summarize_by_period(data, period_func):
@@ -54,6 +64,7 @@ def summarize_by_period(data, period_func):
         period = period_func(disconnect_time)
         summarized[period].append(duration)
     return summarized
+
 
 # Function to process disconnections and reconnections
 def monitor_connections():
@@ -80,33 +91,49 @@ def monitor_connections():
     j = 0
     while i < len(disconnect_times) and j < len(reconnect_times):
         if reconnect_times[j] > disconnect_times[i]:
-            duration = (reconnect_times[j] - disconnect_times[i]).total_seconds()
+            duration = (
+                reconnect_times[j] - disconnect_times[i]
+            ).total_seconds()
             disconnect_durations.append((duration, disconnect_times[i]))
             print(f"Disconnect duration: {duration} seconds")
             if duration > DISCONNECT_LIMIT:
-                print(f"ALERT: Disconnect lasted more than {DISCONNECT_LIMIT} seconds")
+                print(
+                    "ALERT: Disconnect lasted more than "
+                    f"{DISCONNECT_LIMIT} seconds"
+                )
             i += 1
         j += 1
 
     # Summarize by month
-    disconnects_by_month = summarize_by_period(disconnect_durations, lambda x: x.strftime('%Y-%m'))
+    disconnects_by_month = summarize_by_period(
+        disconnect_durations, lambda x: x.strftime("%Y-%m")
+    )
     # Summarize by week
-    disconnects_by_week = summarize_by_period(disconnect_durations, lambda x: x.strftime('%Y-%U'))
+    disconnects_by_week = summarize_by_period(
+        disconnect_durations, lambda x: x.strftime("%Y-%U")
+    )
 
     # Display summary by month
     print("\n--- Disconnects by Month ---")
     for month, durations in disconnects_by_month.items():
         average_duration = calculate_average(durations)
-        print(f"Month: {month} - Total disconnects: {len(durations)} - Average duration: {average_duration:.2f} seconds")
+        print(
+            f"Month: {month} - Total disconnects: {len(durations)} "
+            f"- Average duration: {average_duration:.2f} seconds"
+        )
 
     # Display summary by week
     print("\n--- Disconnects by Week ---")
     for week, durations in disconnects_by_week.items():
         average_duration = calculate_average(durations)
-        print(f"Week: {week} - Total disconnects: {len(durations)} - Average duration: {average_duration:.2f} seconds")
+        print(
+            f"Week: {week} - Total disconnects: {len(durations)} "
+            f"- Average duration: {average_duration:.2f} seconds"
+        )
 
     print(f"\nTotal disconnects captured: {len(disconnect_durations)} events")
     print(f"Total reconnects captured: {len(reconnect_times)} events")
+
 
 if __name__ == "__main__":
     monitor_connections()
